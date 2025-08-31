@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - School Management System{% endblock %}
+
+{% block content %}
+<div class="text-center mb-2">
+    <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #667eea;">Welcome, {{ name }}!</h1>
+    <p style="font-size: 1.1rem; color: #666;">Your academic performance overview</p>
+</div>
+
+<div class="grid">
+    <!-- Absences Card -->
+    <div class="card">
+        <div class="card-header">Absence Count</div>
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; font-weight: bold; color: #667eea;">{{ total_absences }}</div>
+            <p style="color: #666; margin-top: 0.5rem;">Total absences</p>
+        </div>
+    </div>
+
+    <!-- Overall Status Card -->
+    <div class="card">
+        <div class="card-header">Overall Status</div>
+        <div style="text-align: center; padding: 1rem;">
+            {% if grades %}
+                {% set all_admis = grades | selectattr('status', 'equalto', 'Admis') | list | length %}
+                {% set total_modules = grades | length %}
+                {% if all_admis == total_modules %}
+                    <div style="font-size: 2rem; font-weight: bold; color: #28a745;">Admis</div>
+                    <p style="color: #666; margin-top: 0.5rem;">All modules passed!</p>
+                {% else %}
+                    <div style="font-size: 2rem; font-weight: bold; color: #dc3545;">Non Admis</div>
+                    <p style="color: #666; margin-top: 0.5rem;">{{ total_modules - all_admis }} module(s) to retake</p>
+                {% endif %}
+            {% else %}
+                <div style="font-size: 2rem; font-weight: bold; color: #6c757d;">No Grades</div>
+                <p style="color: #666; margin-top: 0.5rem;">No grades recorded yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Risk Level Card -->
+    <div class="card">
+        <div class="card-header">Risk Level</div>
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 2rem; font-weight: bold; color: {{ '#dc3545' if risk_level == 'high' else '#ffc107' if risk_level == 'medium' else '#28a745' }};">
+                {{ risk_level.title() }}
+            </div>
+            <p style="color: #666; margin-top: 0.5rem;">
+                {% if risk_level == 'high' %}
+                    ⚠️ High risk - Immediate attention needed
+                {% elif risk_level == 'medium' %}
+                    📚 Medium risk - Additional support recommended
+                {% else %}
+                    ✅ Low risk - Good performance
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Ranking Card -->
+    <div class="card">
+        <div class="card-header">Class Ranking</div>
+        <div style="text-align: center; padding: 1rem;">
+            {% if ranking %}
+                <div style="font-size: 2rem; font-weight: bold; color: #667eea;">{{ ranking }}/{{ total_students }}</div>
+                <p style="color: #666; margin-top: 0.5rem;">Position in class</p>
+                <p style="color: #999; font-size: 0.9rem;">Average: {{ "%.2f"|format(avg_grade) }}/20</p>
+            {% else %}
+                <div style="font-size: 2rem; font-weight: bold; color: #6c757d;">-</div>
+                <p style="color: #666; margin-top: 0.5rem;">No ranking available</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Grades Table -->
+<div class="card">
+    <div class="card-header">Your Grades</div>
+    
+    {% if grades %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                    <th>Absences</th>
+                    <th>Semester</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grade in grades %}
+                    <tr>
+                        <td>{{ grade.module }}</td>
+                        <td>{{ "%.2f"|format(grade.grade) }}/20</td>
+                        <td class="status-{{ 'admis' if grade.status == 'Admis' else 'non-admis' }}">
+                            {{ grade.status }}
+                        </td>
+                        <td>{{ grade.absences }}</td>
+                        <td>{{ grade.year }} S{{ grade.semester }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Summary -->
+        <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+            <div class="grid">
+                <div style="text-align: center;">
+                    <strong>Average Grade:</strong><br>
+                    <span style="font-size: 1.2rem; color: #667eea;">
+                        {{ "%.2f"|format((grades | sum(attribute='grade')) / grades | length) }}/20
+                    </span>
+                </div>
+                <div style="text-align: center;">
+                    <strong>Modules Passed:</strong><br>
+                    <span style="font-size: 1.2rem; color: #28a745;">
+                        {{ grades | selectattr('status', 'equalto', 'Admis') | list | length }}/{{ grades | length }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center" style="padding: 2rem; color: #666;">
+            <p>No grades have been recorded for you yet.</p>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Please contact your administrator.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

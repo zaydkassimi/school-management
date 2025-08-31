@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Register - School Management System{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1 style="font-size: 2.5rem; margin-bottom: 2rem; color: #667eea;">Create Account</h1>
+    <p style="font-size: 1.1rem; margin-bottom: 2rem; color: #666;">Register as a new student</p>
+</div>
+
+<div style="max-width: 400px; margin: 0 auto;">
+    <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required minlength="6">
+        </div>
+        
+        <div class="text-center">
+            <button type="submit" class="btn" style="width: 100%;">Register</button>
+        </div>
+    </form>
+    
+    <div class="text-center mt-2">
+        <p style="color: #666;">Already have an account? <a href="{{ url_for('login') }}" style="color: #667eea; text-decoration: none;">Login here</a></p>
+    </div>
+</div>
+{% endblock %} 

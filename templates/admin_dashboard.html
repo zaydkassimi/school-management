@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - School Management System{% endblock %}
+
+{% block content %}
+<div class="text-center mb-2">
+    <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #667eea;">Admin Dashboard</h1>
+    <p style="font-size: 1.1rem; color: #666;">Manage student grades and absences</p>
+    <div style="margin-top: 1rem;">
+        <a href="{{ url_for('analytics') }}" class="btn btn-secondary">📊 Analytics Dashboard</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-2">
+    <div class="card-header">Filters</div>
+    <form method="GET" action="{{ url_for('admin_dashboard') }}">
+        <div class="grid">
+            <div class="form-group">
+                <label for="academic_year">Academic Year</label>
+                <select id="academic_year" name="academic_year">
+                    <option value="">All Years</option>
+                    {% for year in academic_years %}
+                        <option value="{{ year }}" {{ 'selected' if current_filters.academic_year == year }}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="module">Module</label>
+                <select id="module" name="module">
+                    <option value="">All Modules</option>
+                    {% for module in modules %}
+                        <option value="{{ module }}" {{ 'selected' if current_filters.module == module }}>{{ module }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="teacher">Teacher</label>
+                <select id="teacher" name="teacher">
+                    <option value="">All Teachers</option>
+                    {% for teacher in teachers %}
+                        <option value="{{ teacher }}" {{ 'selected' if current_filters.teacher == teacher }}>{{ teacher }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="risk">Risk Level</label>
+                <select id="risk" name="risk">
+                    <option value="">All Students</option>
+                    <option value="high" {{ 'selected' if current_filters.risk == 'high' }}>High Risk</option>
+                    <option value="medium" {{ 'selected' if current_filters.risk == 'medium' }}>Medium Risk</option>
+                    <option value="low" {{ 'selected' if current_filters.risk == 'low' }}>Low Risk</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="semester">Semester</label>
+                <select id="semester" name="semester">
+                    <option value="">All Semesters</option>
+                    {% for semester in semesters %}
+                        <option value="{{ semester }}" {{ 'selected' if current_filters.semester == semester }}>Semester {{ semester }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <button type="submit" class="btn">Apply Filters</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+<!-- Add/Update Student Data Form -->
+<div class="card mb-2">
+    <div class="card-header">Add/Update Student Data</div>
+    <form method="POST" action="{{ url_for('admin_dashboard') }}">
+        <div class="grid">
+            <div class="form-group">
+                <label for="student_id">Select Student</label>
+                <select id="student_id" name="student_id" required>
+                    <option value="">Choose a student...</option>
+                    {% for student in students %}
+                        <option value="{{ student.id }}">{{ student.name }} ({{ student.email }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="module_name">Module Name</label>
+                <input type="text" id="module_name" name="module_name" required placeholder="e.g., Mathematics, Physics">
+            </div>
+            
+            <div class="form-group">
+                <label for="grade">Grade (0-20)</label>
+                <input type="number" id="grade" name="grade" min="0" max="20" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="absences">Absence Count</label>
+                <input type="number" id="absences" name="absences" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="teacher_name">Teacher Name</label>
+                <input type="text" id="teacher_name" name="teacher_name" placeholder="e.g., Dr. Smith">
+            </div>
+            
+            <div class="form-group">
+                <label for="academic_year">Academic Year</label>
+                <input type="text" id="academic_year" name="academic_year" value="2024-2025" placeholder="e.g., 2024-2025">
+            </div>
+            
+            <div class="form-group">
+                <label for="semester">Semester</label>
+                <select id="semester" name="semester">
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <button type="submit" class="btn">Update Student Data</button>
+        </div>
+    </form>
+</div>
+
+<!-- Students Table -->
+<div class="card">
+    <div class="card-header">All Students</div>
+    
+    {% if students %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Module</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                    <th>Absences</th>
+                    <th>Risk Level</th>
+                    <th>Teacher</th>
+                    <th>Year</th>
+                    <th>Semester</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                    {% if student.modules %}
+                        {% for module in student.modules %}
+                            <tr>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.email }}</td>
+                                <td>{{ module.name }}</td>
+                                <td>{{ "%.2f"|format(module.grade) }}</td>
+                                <td class="status-{{ 'admis' if module.status == 'Admis' else 'non-admis' }}">
+                                    {{ module.status }}
+                                </td>
+                                <td>{{ module.absences if module.absences is defined else 0 }}</td>
+                                <td>
+                                    <span class="status-{{ 'non-admis' if student.risk_level == 'high' else 'admis' if student.risk_level == 'low' else 'warning' }}">
+                                        {{ student.risk_level.title() }}
+                                    </span>
+                                </td>
+                                <td>{{ module.teacher or '-' }}</td>
+                                <td>{{ module.year or '-' }}</td>
+                                <td>S{{ module.semester }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td colspan="2" style="text-align: center; color: #666;">No grades recorded</td>
+                            <td>-</td>
+                            <td>{{ student.absences }}</td>
+                            <td>
+                                <span class="status-{{ 'non-admis' if student.risk_level == 'high' else 'admis' if student.risk_level == 'low' else 'warning' }}">
+                                    {{ student.risk_level.title() }}
+                                </span>
+                            </td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="text-center" style="padding: 2rem; color: #666;">
+            <p>No students registered yet.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Auto-fill form when student is selected
+document.getElementById('student_id').addEventListener('change', function() {
+    const studentId = this.value;
+    if (studentId) {
+        // You could add AJAX here to fetch current student data
+        // For now, we'll just clear the form
+        document.getElementById('module_name').value = '';
+        document.getElementById('grade').value = '';
+        document.getElementById('absences').value = '';
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: center; min-height: 80vh;">
+    <div style="max-width: 400px; width: 100%;">
+        <div class="text-center">
+            <h1 style="font-size: 2.5rem; margin-bottom: 2rem; color: #667eea;">Welcome Back</h1>
+            <p style="font-size: 1.1rem; margin-bottom: 2rem; color: #666;">Please login to access your dashboard</p>
+        </div>
+    <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+            <label for="email">Email or Admin Username</label>
+            <input type="text" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div class="text-center">
+            <button type="submit" class="btn" style="width: 100%;">Login</button>
+        </div>
+    </form>
+    
+        <div class="text-center mt-2">
+            <p style="color: #666;">Don't have an account? <a href="{{ url_for('register') }}" style="color: #667eea; text-decoration: none;">Register here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

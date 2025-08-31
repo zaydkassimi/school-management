@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - School Management System{% endblock %}
+
+{% block content %}
+<div class="text-center mb-2">
+    <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #667eea;">Analytics Dashboard</h1>
+    <p style="font-size: 1.1rem; color: #666;">Global performance overview and risk analysis</p>
+</div>
+
+<!-- Performance Overview Cards -->
+<div class="grid mb-2">
+    <div class="card">
+        <div class="card-header">Total Students</div>
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; font-weight: bold; color: #667eea;">{{ total_students }}</div>
+            <p style="color: #666; margin-top: 0.5rem;">Registered students</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Overall Average Grade</div>
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; font-weight: bold; color: #28a745;">{{ "%.2f"|format(overall_avg) }}</div>
+            <p style="color: #666; margin-top: 0.5rem;">/20 points</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Success Rate</div>
+        <div style="text-align: center; padding: 1rem;">
+            {% set success_rate = ((total_modules - failed_modules) / total_modules * 100) if total_modules > 0 else 0 %}
+            <div style="font-size: 3rem; font-weight: bold; color: #28a745;">{{ "%.1f"|format(success_rate) }}%</div>
+            <p style="color: #666; margin-top: 0.5rem;">Modules passed</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Failed Modules</div>
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; font-weight: bold; color: #dc3545;">{{ failed_modules }}</div>
+            <p style="color: #666; margin-top: 0.5rem;">out of {{ total_modules }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Evolution -->
+<div class="card mb-2">
+    <div class="card-header" style="font-size: 1.5rem; font-weight: 600; color: #4655a7; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px;">Performance Evolution by Semester</div>
+    {% if performance_evolution %}
+        <div style="padding: 1.5rem 1rem;">
+            <div id="evolution-chart" style="width: 100%; height: 350px;"></div>
+        </div>
+        <table class="table" style="box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #4d5fc6 0%, #5f6fc9 100%);">
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Period</th>
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Average Grade</th>
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Success Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for period in performance_evolution %}
+                    <tr>
+                        <td style="padding: 15px; text-align: center; font-weight: 500;">{{ period.period }}</td>
+                        <td style="padding: 15px; text-align: center;">
+                            <div style="background-color: #f5f6ff; border-radius: 20px; padding: 6px 12px; display: inline-block; font-weight: 600; color: #4655a7;">
+                                {{ "%.2f"|format(period.avg_grade) }}/20
+                            </div>
+                        </td>
+                        <td style="padding: 15px; text-align: center;">
+                            <div style="background-color: {{ '#e8f5e9' if period.success_rate >= 70 else '#fff8e1' if period.success_rate >= 50 else '#ffebee' }}; 
+                                 border-radius: 20px; padding: 6px 12px; display: inline-block; font-weight: 600; 
+                                 color: {{ '#1b5e20' if period.success_rate >= 70 else '#ff8f00' if period.success_rate >= 50 else '#b71c1c' }};">
+                                {{ "%.1f"|format(period.success_rate) }}%
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="text-center" style="padding: 2rem; color: #666;">
+            <p>No evolution data available.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Module Performance -->
+<div class="card mb-2">
+    <div class="card-header">Module Performance Analysis</div>
+    {% if module_performance %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Average Grade</th>
+                    <th>Students</th>
+                    <th>Success Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for module_name, avg_grade, student_count in module_performance %}
+                    {% set module_success = (avg_grade / 20 * 100) if avg_grade else 0 %}
+                    <tr>
+                        <td>{{ module_name }}</td>
+                        <td>{{ "%.2f"|format(avg_grade) }}/20</td>
+                        <td>{{ student_count }}</td>
+                        <td>
+                            <span style="color: {{ '#28a745' if module_success >= 70 else '#ffc107' if module_success >= 50 else '#dc3545' }};">
+                                {{ "%.1f"|format(module_success) }}%
+                            </span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="text-center" style="padding: 2rem; color: #666;">
+            <p>No module data available.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Students at Risk -->
+<div class="card mb-2">
+    <div class="card-header" style="font-size: 1.5rem; font-weight: 600; color: #4655a7; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px;">Students at Risk</div>
+    {% if at_risk_students %}
+        <table class="table" style="box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #4d5fc6 0%, #5f6fc9 100%);">
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Student Name</th>
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Average Grade</th>
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Absences</th>
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Risk Level</th>
+                    <th style="padding: 15px; color: white; font-weight: 600; text-align: center; border-bottom: none;">Recommendations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, avg_grade, absences in at_risk_students %}
+                    {% set risk_level = 'high' if (avg_grade or 0) < 10 and absences > 10 else 'medium' if (avg_grade or 0) < 10 or absences > 10 else 'low' %}
+                    <tr>
+                        <td style="padding: 15px; text-align: center; font-weight: 500;">{{ name }}</td>
+                        <td style="padding: 15px; text-align: center;">
+                            <div style="background-color: #f5f6ff; border-radius: 20px; padding: 6px 12px; display: inline-block; font-weight: 600; color: #4655a7;">
+                                {{ "%.2f"|format(avg_grade or 0) }}/20
+                            </div>
+                        </td>
+                        <td style="padding: 15px; text-align: center;">
+                            <div style="background-color: {{ '#ffebee' if absences > 10 else '#f5f6ff' }}; border-radius: 20px; padding: 6px 12px; display: inline-block; font-weight: 600; color: {{ '#b71c1c' if absences > 10 else '#4655a7' }};">
+                                {{ absences }}
+                            </div>
+                        </td>
+                        <td style="padding: 15px; text-align: center;">
+                            <div style="background-color: {{ '#ffebee' if risk_level == 'high' else '#fff8e1' if risk_level == 'medium' else '#e8f5e9' }}; 
+                                border-radius: 20px; padding: 6px 12px; display: inline-block; font-weight: 600; 
+                                color: {{ '#b71c1c' if risk_level == 'high' else '#ff8f00' if risk_level == 'medium' else '#1b5e20' }};">
+                                {{ risk_level.title() }}
+                            </div>
+                        </td>
+                        <td style="padding: 15px; text-align: left;">
+                            {% if risk_level == 'high' %}
+                                <div style="background-color: #fff5f5; border-radius: 10px; padding: 10px; border-left: 4px solid #dc3545;">
+                                    <div style="font-weight: 600; color: #dc3545; margin-bottom: 5px;">⚠️ Immediate intervention required</div>
+                                    <div style="color: #666; font-size: 0.9rem;">Suggest: Weekly tutoring + regular progress checks</div>
+                                </div>
+                            {% elif risk_level == 'medium' %}
+                                <div style="background-color: #fffbf0; border-radius: 10px; padding: 10px; border-left: 4px solid #ffc107;">
+                                    <div style="font-weight: 600; color: #ff8f00; margin-bottom: 5px;">📚 Additional support recommended</div>
+                                    <div style="color: #666; font-size: 0.9rem;">Suggest: Study groups + extra practice sessions</div>
+                                </div>
+                            {% else %}
+                                <div style="background-color: #f0fff4; border-radius: 10px; padding: 10px; border-left: 4px solid #28a745;">
+                                    <div style="font-weight: 600; color: #28a745; margin-bottom: 5px;">✅ Monitoring</div>
+                                    <div style="color: #666; font-size: 0.9rem;">Continue regular assessments</div>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="text-center" style="padding: 2rem; color: #666;">
+            <p>No students currently at risk.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Export Options -->
+<div class="card">
+    <div class="card-header">Export Data</div>
+    <div class="text-center" style="padding: 1rem;">
+        <p style="color: #666; margin-bottom: 1rem;">Download comprehensive reports in various formats</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('export_data', format='csv') }}" class="btn btn-secondary">
+                📊 Export CSV
+            </a>
+            <a href="{{ url_for('export_data', format='excel') }}" class="btn btn-secondary">
+                📈 Export Excel
+            </a>
+            <a href="{{ url_for('export_data', format='pdf') }}" class="btn btn-secondary">
+                📄 Export PDF
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-warning {
+    color: #ffc107;
+    font-weight: bold;
+}
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have performance evolution data
+        {% if performance_evolution %}
+            // Extract data from performance_evolution
+            const labels = [{% for period in performance_evolution %}'{{ period.period }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+            const avgGrades = [{% for period in performance_evolution %}{{ period.avg_grade }}{% if not loop.last %}, {% endif %}{% endfor %}];
+            const successRates = [{% for period in performance_evolution %}{{ period.success_rate }}{% if not loop.last %}, {% endif %}{% endfor %}];
+            
+            // Create an enhanced chart using plain JavaScript
+            const ctx = document.getElementById('evolution-chart');
+            
+            // Create the chart HTML structure with improved styling
+            let chartHTML = '<div style="position: relative; height: 100%; padding: 10px;">';
+            
+            // Y-axis labels
+            chartHTML += '<div style="position: absolute; height: 200px; display: flex; flex-direction: column; justify-content: space-between; left: 0;">';
+            chartHTML += '<div style="font-size: 12px; color: #555;">100%</div>';
+            chartHTML += '<div style="font-size: 12px; color: #555;">75%</div>';
+            chartHTML += '<div style="font-size: 12px; color: #555;">50%</div>';
+            chartHTML += '<div style="font-size: 12px; color: #555;">25%</div>';
+            chartHTML += '<div style="font-size: 12px; color: #555;">0%</div>';
+            chartHTML += '</div>';
+            
+            // Grid lines
+            chartHTML += '<div style="position: absolute; left: 30px; right: 20px; height: 200px; display: flex; flex-direction: column; justify-content: space-between;">';
+            chartHTML += '<div style="height: 1px; background-color: rgba(0,0,0,0.1);"></div>';
+            chartHTML += '<div style="height: 1px; background-color: rgba(0,0,0,0.1);"></div>';
+            chartHTML += '<div style="height: 1px; background-color: rgba(0,0,0,0.1);"></div>';
+            chartHTML += '<div style="height: 1px; background-color: rgba(0,0,0,0.1);"></div>';
+            chartHTML += '<div style="height: 1px; background-color: rgba(0,0,0,0.1);"></div>';
+            chartHTML += '</div>';
+            
+            // Bars container
+            chartHTML += '<div style="display: flex; justify-content: space-around; height: 100%; margin-left: 40px; margin-right: 20px; position: relative;">';
+            
+            // Draw bars
+            const maxGrade = 20;  // Max grade is 20
+            const maxRate = 100;  // Max success rate is 100%
+            
+            for (let i = 0; i < labels.length; i++) {
+                const gradeHeight = (avgGrades[i] / maxGrade) * 200;  // Increased height scale
+                const rateHeight = (successRates[i] / maxRate) * 200;  // Increased height scale
+                const gradePercentage = (avgGrades[i] / maxGrade) * 100;  // For tooltip
+                
+                chartHTML += '<div style="display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 120px;">';
+                
+                // Container for both bars
+                chartHTML += '<div style="display: flex; align-items: flex-end; height: 200px; gap: 10px; margin-top: 10px;">';
+                
+                // Grade bar with tooltip
+                chartHTML += `<div style="position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">`;
+                chartHTML += `<div style="position: absolute; bottom: ${gradeHeight + 5}px; background-color: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s;" class="chart-tooltip">${avgGrades[i].toFixed(2)}/20 (${gradePercentage.toFixed(1)}%)</div>`;
+                chartHTML += `<div style="background: linear-gradient(180deg, #7986CB 0%, #3F51B5 100%); height: ${gradeHeight}px; width: 40px; border-radius: 6px 6px 0 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: all 0.3s; position: relative;" onmouseover="this.previousElementSibling.style.opacity=1" onmouseout="this.previousElementSibling.style.opacity=0"></div>`;
+                chartHTML += '</div>';
+                
+                // Success rate bar with tooltip
+                chartHTML += `<div style="position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">`;
+                chartHTML += `<div style="position: absolute; bottom: ${rateHeight + 5}px; background-color: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s;" class="chart-tooltip">${successRates[i].toFixed(1)}%</div>`;
+                chartHTML += `<div style="background: linear-gradient(180deg, #66BB6A 0%, #388E3C 100%); height: ${rateHeight}px; width: 40px; border-radius: 6px 6px 0 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: all 0.3s;" onmouseover="this.previousElementSibling.style.opacity=1" onmouseout="this.previousElementSibling.style.opacity=0"></div>`;
+                chartHTML += '</div>';
+                
+                chartHTML += '</div>';  // End container for both bars
+                
+                // Label
+                chartHTML += `<div style="margin-top: 15px; font-size: 14px; font-weight: 500; color: #333;">${labels[i]}</div>`;
+                chartHTML += '</div>';
+            }
+            
+            chartHTML += '</div>';  // End bars container
+            
+            // Legend with improved styling
+            chartHTML += '<div style="display: flex; justify-content: center; margin-top: 30px; gap: 30px;">';
+            chartHTML += '<div style="display: flex; align-items: center;"><div style="width: 16px; height: 16px; background: linear-gradient(180deg, #7986CB 0%, #3F51B5 100%); margin-right: 8px; border-radius: 3px;"></div><span style="font-size: 14px; color: #333;">Average Grade</span></div>';
+            chartHTML += '<div style="display: flex; align-items: center;"><div style="width: 16px; height: 16px; background: linear-gradient(180deg, #66BB6A 0%, #388E3C 100%); margin-right: 8px; border-radius: 3px;"></div><span style="font-size: 14px; color: #333;">Success Rate</span></div>';
+            chartHTML += '</div>';
+            
+            chartHTML += '</div>';  // End chart container
+            
+            ctx.innerHTML = chartHTML;
+        {% endif %}
+    });
+</script>
+{% endblock %} 
