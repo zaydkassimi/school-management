@@ -2,12 +2,12 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import sqlite3
 import hashlib
 from functools import wraps
-import pandas as pd
+# import pandas as pd  # Removed due to Python 3.13 compatibility issues
 import io
 import csv
 from datetime import datetime
 import json
-from fpdf import FPDF  # Using FPDF instead of pdfkit
+from fpdf import FPDF  # Using fpdf2 instead of pdfkit
 from collections import defaultdict
 import os
 
@@ -630,50 +630,64 @@ def export_data():
         '''
         
         try:
-            # Use pandas to create DataFrame
-            df = pd.read_sql_query(query, conn)
+            # Get data using cursor instead of pandas
+            cursor = conn.cursor()
+            cursor.execute(query)
+            data = cursor.fetchall()
             
-            # Add calculated Status column
-            df['status'] = df['grade'].apply(lambda x: 'Admis' if x >= 10 else 'Non Admis' if not pd.isna(x) else 'N/A')
-            
-            # Rename columns for better readability
-            df.columns = ['Student Name', 'Email', 'Module', 'Grade', 'Teacher', 
-                         'Academic Year', 'Semester', 'Absences', 'Status']
-            
-            # Calculate summary data for another sheet
-            total_students = df['Student Name'].nunique()
-            avg_grade = df['Grade'].mean() if not df['Grade'].empty else 0
-            passed = len(df[df['Status'] == 'Admis'])
-            failed = len(df[df['Status'] == 'Non Admis'])
-            success_rate = (passed / (passed + failed) * 100) if (passed + failed) > 0 else 0
-            
-            summary_data = {
-                'Metric': ['Total Students', 'Overall Average', 'Success Rate', 'Failed Modules'],
-                'Value': [
-                    total_students,
-                    f"{avg_grade:.2f}/20",
-                    f"{success_rate:.1f}%",
-                    failed
+            # Process data manually
+            processed_data = []
+            for row in data:
+                grade = row[3]
+                status = 'Admis' if grade and grade >= 10 else 'Non Admis' if grade is not None else 'N/A'
+                processed_row = [
+                    row[0],  # Student Name
+                    row[1],  # Email
+                    row[2] or 'N/A',  # Module
+                    f"{grade:.2f}" if grade is not None else 'N/A',  # Grade
+                    row[4] or 'N/A',  # Teacher
+                    row[5] or 'N/A',  # Academic Year
+                    row[6] or 'N/A',  # Semester
+                    str(row[7]),  # Absences
+                    status  # Status
                 ]
-            }
-            summary_df = pd.DataFrame(summary_data)
+                processed_data.append(processed_row)
             
-            # Save directly to Excel file first (as a temporary file)
-            temp_excel_file = f'temp_student_data_{datetime.now().strftime("%Y%m%d")}.xlsx'
+            # Calculate summary data
+            students = set([row[0] for row in data])
+            total_students = len(students)
+            grades = [row[3] for row in data if row[3] is not None]
+            avg_grade = sum(grades) / len(grades) if grades else 0
+            passed = len([g for g in grades if g >= 10])
+            failed = len(grades) - passed
+            success_rate = (passed / len(grades) * 100) if grades else 0
             
-            # Use the simplest Excel writing approach
-            with pd.ExcelWriter(temp_excel_file) as writer:
-                df.to_excel(writer, sheet_name='Student Data', index=False)
-                summary_df.to_excel(writer, sheet_name='Summary', index=False)
+            # Create Excel file using openpyxl directly
+            from openpyxl import Workbook
+            wb = Workbook()
             
-            # Read the file back into memory
-            with open(temp_excel_file, 'rb') as f:
-                output = io.BytesIO(f.read())
+            # Student Data sheet
+            ws1 = wb.active
+            ws1.title = "Student Data"
+            headers = ['Student Name', 'Email', 'Module', 'Grade', 'Teacher', 
+                      'Academic Year', 'Semester', 'Absences', 'Status']
+            ws1.append(headers)
             
-            # Clean up the temporary file
-            os.remove(temp_excel_file)
+            for row in processed_data:
+                ws1.append(row)
             
-            # Prepare file for download
+            # Summary sheet
+            ws2 = wb.create_sheet("Summary")
+            summary_headers = ['Metric', 'Value']
+            ws2.append(summary_headers)
+            ws2.append(['Total Students', total_students])
+            ws2.append(['Overall Average', f"{avg_grade:.2f}/20"])
+            ws2.append(['Success Rate', f"{success_rate:.1f}%"])
+            ws2.append(['Failed Modules', failed])
+            
+            # Save to memory
+            output = io.BytesIO()
+            wb.save(output)
             output.seek(0)
             conn.close()
             
